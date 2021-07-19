@@ -23,7 +23,7 @@ namespace fs = std::experimental::filesystem;
 using namespace fairtsp;
 
 void runOneFile(std::string fileName) {
-    std::ifstream file("data/tsplib/brazil58.tsp");
+    std::ifstream file(fileName);
     std::cout << "Start solve problem" << std::endl;
     if (file.is_open())
     {
@@ -32,33 +32,34 @@ void runOneFile(std::string fileName) {
         {
             std::cout << "start solve model" << std::endl;
             FairOpt model(reader.name, reader.graph, reader.edgeMap);
-            model.solve(0);
+            model.solve(1);
         };
     };
 };
 
 int main()
 {
-    std::string filePaths = "listProblems.txt";
-    writePathsInFolder2File("data/tsplib", "tsp", filePaths);
-    std::vector<std::string> listProb;
-    std::ifstream inputFilePaths("listProblems.txt");
-    getListProblem(inputFilePaths, listProb);
+  runOneFile("data/tsplib/att48.tsp");
+  //std::string filePaths = "listProblems.txt";
+  //writePathsInFolder2File("data/tsplib", "tsp", filePaths);
+  //std::vector<std::string> listProb;
+  //std::ifstream inputFilePaths("listProblems.txt");
+  //getListProblem(inputFilePaths, listProb);
     // std::ofstream outputResults("resultsMaxminDirectedproblem.txt");
 
-    for (int i = 0; i < listProb.size(); ++i) {
-        std::ifstream file(listProb[i]);
-        if (file.is_open()) {
-            TsplibReader reader(file, 100);
-            if (reader.checkInput) {
-                std::cout << "solving the problem " << listProb[i] << std::endl;
-                for (uint version = 0u; version < 3; ++version) {
-                    FairOpt model(reader.name, reader.graph, reader.edgeMap);
-                    model.solve(version);
-                };
-            };
-        };
-    };
+    //for (int i = 0; i < listProb.size(); ++i) {
+  //  std::ifstream file(listProb[i]);
+  //    if (file.is_open()) {
+  //        TsplibReader reader(file, 100);
+  //        if (reader.checkInput) {
+  //            std::cout << "solving the problem " << listProb[i] << std::endl;
+  //            for (uint version = 0u; version < 3; ++version) {
+  //                FairOpt model(reader.name, reader.graph, reader.edgeMap);
+  //                model.solve(version);
+  //            };
+  //        };
+  //    };
+  //};
 
     return 0;
 };

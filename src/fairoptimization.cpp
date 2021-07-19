@@ -101,15 +101,9 @@ namespace fairtsp {
                 if (std::abs(xSol[i][j] - 1) < TOLERANCE) {
                     std::vector<int> tmp = {i, j};
                     edgesUsed.push_back(tmp);
-                    costs.push_back(edgeMap[lemon::findEdge(this->graph, graph.nodeFromId(i), graph.nodeFromId(j))]);
                 };
             };
         };
-
-        for (int i = 0; i < numNodes; ++i) {
-            std::cout << costs[i] << '\t';
-        };
-        std::cout << std::endl;
 
         std::vector<std::vector<std::vector<int>>> listSubtour;
         listSubtour = getSubtours(edgesUsed);
@@ -125,11 +119,25 @@ namespace fairtsp {
                 expr.end();
             };
         } else {
-            std::cout << "Value of t " << getValue(t) << std::endl;
-            std::cout << "Value of u " << getValue(u) << std::endl;
-            std::cout << "Value of minimum element " << *std::min_element(costs.begin(), costs.end()) << std::endl;
-            add(t >= u - *std::min_element(costs.begin(), costs.end()));
-            // add(t <= getValue(u) - *std::min_element(costs.begin(), costs.end()));
+	    float maxSum = 0;
+	    int maxInd = 0;
+	    for (int i = 0; i < numNodes; ++i){
+	      float sum_i = 0;
+	      for(int j = 0; j < numNodes; ++j){
+		lemon::ListGraph::Edge edge = lemon::findEdge(graph, graph.nodeFromId(i), graph.nodeFromId(j));
+		sum_i += edgeMap[edge] * xSol[i][j];
+	      };
+	      if (sum_i > maxSum) {
+		maxInd = i;
+		maxSum = sum_i;
+	      };
+	    };
+            IloExpr expr(masterEnv);
+	    for (int j = 0; j < numNodes; ++j) {
+	      lemon::ListGraph::Edge edge = lemon::findEdge(graph, graph.nodeFromId(maxInd), graph.nodeFromId(j));
+	      expr += edgeMap[edge] * x[maxInd][j];
+	    };
+            add(t >= u - expr);
         };
         xSol.end();
         return;
@@ -411,9 +419,9 @@ namespace fairtsp {
         t.setName("t");
         IloIntVarArray li(masterEnv, numNodes);
 
-        createLPformulationMaxminDirected(masterMod, x, u, l, t);
+        // createLPformulationMaxminDirected(masterMod, x, u, l, t);
         // createLPformulationAddVar(masterMod, x, u, l, li);
-        // createLPformulationBender(masterMod, x, u, t);
+        createLPformulationBender(masterMod, x, u, t);
         std::cout << "CREATED MASTER ILP" << std::endl;
 
         IloCplex masterCplex(masterMod);
@@ -449,14 +457,15 @@ namespace fairtsp {
             masterCplex.setParam(IloCplex::Param::MIP::Cuts::PathCut, -1);
         };
 
-        masterCplex.use(FairOptLazyCallback(masterEnv, x, this->graph));
+        // masterCplex.use(FairOptLazyCallback(masterEnv, x, this->graph));
+	masterCplex.use(BenderLazyCallback(masterEnv, t, u, x, this->graph, this->edgeMap));
         // masterCplex.use(LocalCutCallback(masterEnv, x, li, this->graph, this->edgeMap));
 
-        std::stringstream name;
-        name << "results/" << this->instance << "_" << useCutVersion << "_resultLogFile.txt";
-        std::ofstream outputFile(name.str().c_str());
-        masterCplex.use(InfoCallback(masterEnv, outputFile));
-        name.str("");
+        //std::stringstream name;
+        //name << "results/" << this->instance << "_" << useCutVersion << "_resultLogFile.txt";
+        //std::ofstream outputFile(name.str().c_str());
+        //masterCplex.use(InfoCallback(masterEnv, outputFile));
+        //name.str("");
 
         try
         {
